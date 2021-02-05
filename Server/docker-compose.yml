@@ -1,8 +1,15 @@
 version: '3.1'
+
+networks:
+  network-zabbix:
+    driver: bridge
+
 services:
   postgres-server:
     image: postgres:latest
     restart: always
+    networks:
+      - network-zabbix
     environment:
       POSTGRES_USER: ${PGUSER:-zabbix}
       POSTGRES_PASSWORD: ${PGPASS:-zabbixX__2}
@@ -15,6 +22,8 @@ services:
     image: zabbix/zabbix-server-pgsql:ubuntu-latest
     hostname: zabbix-server
     restart: always
+    networks:
+      - network-zabbix
     environment: 
       POSTGRES_USER: ${PGUSER:-zabbix}
       POSTGRES_PASSWORD: ${PGPASS:-zabbixX__2}
@@ -34,6 +43,8 @@ services:
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:ubuntu-latest
     restart: always
+    networks:
+      - network-zabbix
     environment:
       DB_SERVER_HOST: postgres-server
       POSTGRES_USER: ${PGUSER:-zabbix}
@@ -55,6 +66,8 @@ services:
     container_name: zabbix-agent2
     hostname: zabbix-agent
     privileged: true
+    networks:
+      - network-zabbix
 #    network_mode: "host"
     restart: always
     user: "0:0"
@@ -64,12 +77,20 @@ services:
       - 0.0.0.0:10050:10050
       - 0.0.0.0:31999:31999
     volumes:
+      - /proc:/proc:ro
+      - /var/run:/var/run
+      - /sys:/sys:ro
+      - /:/rootfs:ro
+      - /dev/sda:/dev/sda
+      - /dev/sdb:/dev/sdb
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/localtime:/etc/localtime:ro
       - ./data/zabbix-agent:/etc/zabbix/zabbix_agentd.d
   grafana-xxl: 
     image: monitoringartist/grafana-xxl:latest
     restart: always
+    networks:
+      - network-zabbix
     environment:
       GF_SERVER_ROOT_URL: ${MON_URL:-http://localhost}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMINPASS:-zabbix__2}
